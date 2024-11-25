@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Google Chrome Extension Hack",
+  "version": "1.0.0",
+  "description": "Note taking AI",
+  "permissions": ["activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html"
+  }
+}
