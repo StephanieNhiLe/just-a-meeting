@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
-import { createClient } from "@deepgram/sdk";
 
 const MicrophoneComponent = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState(null);
   const [liveTranscript, setLiveTranscript] = useState("");
   const [diarizedTranscript, setDiarizedTranscript] = useState("");
+  const [summary, setSummary] = useState(""); // Added missing summary state
   const mediaRecorder = useRef(null);
   const socket = useRef(null);
-  const audioChunks = useRef([]);
+  const audioChunks = useRef([]); // Retained for potential use in audio processing
 
-  const deepgramApiKey = "";
+  const deepgramApiKey = "YOUR_DEEPGRAM_API_KEY"; // Replace with your actual API key
 
   const startMicrophone = async () => {
     try {
@@ -23,37 +23,40 @@ const MicrophoneComponent = () => {
       setError(null);
       setLiveTranscript("");
       setDiarizedTranscript("");
-      audioChunks.current = [];
+      setSummary("");
 
       mediaRecorder.current = new MediaRecorder(mediaStream);
-
       socket.current = new WebSocket(
         "wss://api.deepgram.com/v1/listen?endpointing=1000&utterance_end=1000",
         ["token", deepgramApiKey]
       );
 
+      // Handle WebSocket connection
       socket.current.onopen = () => {
-        mediaRecorder.current.start(250);
+        console.log("WebSocket connected.");
+        mediaRecorder.current.start(250); // Record in 250ms chunks
       };
 
+      // Handle incoming transcription
       socket.current.onmessage = (event) => {
         const result = JSON.parse(event.data);
         if (result.channel?.alternatives?.[0]) {
           const newTranscript = result.channel.alternatives[0].transcript;
           setLiveTranscript((prev) => prev + newTranscript + "\n");
+          summarizeTranscript(newTranscript); // Summarize the transcript
         }
       };
 
+      // Handle WebSocket errors
       socket.current.onerror = (error) => {
-        handleError(error);
+        console.error("WebSocket error:", error);
+        setError("WebSocket connection failed.");
       };
 
+      // Handle MediaRecorder data
       mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.current.push(event.data);
-          if (socket.current?.readyState === WebSocket.OPEN) {
-            socket.current.send(event.data);
-          }
+        if (event.data.size > 0 && socket.current?.readyState === WebSocket.OPEN) {
+          socket.current.send(event.data);
         }
       };
     } catch (error) {
@@ -62,7 +65,7 @@ const MicrophoneComponent = () => {
   };
 
   const stopMicrophone = async () => {
-    if (mediaRecorder.current && mediaRecorder.current.state !== "inactive") {
+    if (mediaRecorder.current) {
       mediaRecorder.current.stop();
     }
     if (socket.current) {
@@ -88,14 +91,9 @@ const MicrophoneComponent = () => {
       );
 
       const data = await response.json();
-      chrome.runtime.sendMessage({
-        result: "Received",
-        data: data,
-      });
       if (data.results?.channels?.[0]?.alternatives?.[0]) {
         const words = data.results.channels[0].alternatives[0].words;
-        const diarizedText = formatDiarizedTranscript(words);
-        setDiarizedTranscript(diarizedText);
+        setDiarizedTranscript(formatDiarizedTranscript(words));
       }
     } catch (error) {
       handleError(error);
@@ -103,14 +101,14 @@ const MicrophoneComponent = () => {
   };
 
   const formatDiarizedTranscript = (words) => {
-    let transcript = '';
+    let transcript = "";
     let currentSpeaker = null;
     let currentSentence = [];
 
     for (const word of words) {
       if (currentSpeaker === null || word.speaker !== currentSpeaker) {
         if (currentSentence.length > 0) {
-          transcript += `Speaker ${currentSpeaker}: ${currentSentence.join(' ')}\n`;
+          transcript += `Speaker ${currentSpeaker}: ${currentSentence.join(" ")}\n`;
           currentSentence = [];
         }
         currentSpeaker = word.speaker;
@@ -119,27 +117,35 @@ const MicrophoneComponent = () => {
     }
 
     if (currentSentence.length > 0) {
-      transcript += `Speaker ${currentSpeaker}: ${currentSentence.join(' ')}`;
+      transcript += `Speaker ${currentSpeaker}: ${currentSentence.join(" ")}`;
     }
 
     return transcript;
   };
 
+  const summarizeTranscript = (transcript) => {
+    chrome.runtime.sendMessage(
+      { type: "SUMMARIZE_TRANSCRIPT", transcript },
+      (response) => {
+        if (response.success) {
+          setSummary(response.summary);
+        } else {
+          console.error("Summarization Error:", response.error);
+          setError("Failed to summarize the text.");
+        }
+      }
+    );
+  };
+
   const handleError = (error) => {
-    let errorMessage =
-      "An error occurred while trying to access the microphone.";
+    let errorMessage = "An error occurred while trying to access the microphone.";
     if (error.name === "NotAllowedError") {
-      errorMessage =
-        "Microphone access was denied. Please check your browser settings.";
+      errorMessage = "Microphone access was denied. Please check your browser settings.";
     } else if (error.name === "NotFoundError") {
       errorMessage = "No microphone was found on your device.";
     } else if (error.name === "NotReadableError") {
       errorMessage = "Your microphone is busy or already in use.";
     }
-    chrome.runtime.sendMessage({
-      result: "ERROR",
-      data: error.message,
-    });
     setError(errorMessage);
     setIsRecording(false);
   };
@@ -169,6 +175,10 @@ const MicrophoneComponent = () => {
       <div>
         <h3>Diarized Transcript:</h3>
         <pre>{diarizedTranscript}</pre>
+      </div>
+      <div>
+        <h3>Summary:</h3>
+        <pre>{summary}</pre>
       </div>
     </div>
   );
