@@ -1,0 +1,49 @@
+/* Global Reset */
+body, html {
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Header Styles */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: white; /* Header background color */
+    padding: 8px 15px; /* Adjust padding for height */
+    width: 100%; /* Ensure full width */
+    box-sizing: border-box; /* Ensures padding doesn't affect width */
+    border-bottom: 2px solid #6f71fd; /* Add blue border if needed */
+  }
+  
+  /* Title Styles */
+  .header-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #6f71fd; /* Blue text */
+    margin: 0; /* Remove unwanted margin */
+  }
+  
+  .header-highlight {
+    color: #f68134; /* Orange for 'A' */
+  }
+  
+  /* Buttons */
+  .star-btn, .settings-btn {
+    background: none;
+    border: 2px solid #6f71fd; /* Border to match design */
+    border-radius: 50%;
+    color: #6f71fd; /* Blue color */
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  
+  .star-btn:hover, .settings-btn:hover {
+    background-color: #f1f1f1; /* Light hover effect */
+  }
+  
