@@ -10,7 +10,7 @@ const MicrophoneComponent = () => {
   const socket = useRef(null);
   const audioChunks = useRef([]); // Retained for potential use in audio processing
 
-  const deepgramApiKey = "YOUR_DEEPGRAM_API_KEY"; // Replace with your actual API key
+  const deepgramApiKey = ""; // Replace with your actual API key
 
   const startMicrophone = async () => {
     try {
@@ -27,7 +27,7 @@ const MicrophoneComponent = () => {
 
       mediaRecorder.current = new MediaRecorder(mediaStream);
       socket.current = new WebSocket(
-        "wss://api.deepgram.com/v1/listen?endpointing=1000&utterance_end=1000",
+        "wss://api.deepgram.com/v1/listen?diarize=true&endpointing=1000&utterance_end=1000",
         ["token", deepgramApiKey]
       );
 
@@ -37,15 +37,36 @@ const MicrophoneComponent = () => {
         mediaRecorder.current.start(250); // Record in 250ms chunks
       };
 
-      // Handle incoming transcription
+      // // Handle incoming transcription
+      // socket.current.onmessage = (event) => {
+      //   const result = JSON.parse(event.data);
+      //   if (result.channel?.alternatives?.[0]) {
+      //     const newTranscript = result.channel.alternatives[0].transcript;
+      //     setLiveTranscript((prev) => prev + newTranscript + "\n");
+      //     summarizeTranscript(newTranscript); // Summarize the transcript
+      //   }
+      // };
+
       socket.current.onmessage = (event) => {
         const result = JSON.parse(event.data);
+      
         if (result.channel?.alternatives?.[0]) {
+          // Live transcription
           const newTranscript = result.channel.alternatives[0].transcript;
           setLiveTranscript((prev) => prev + newTranscript + "\n");
-          summarizeTranscript(newTranscript); // Summarize the transcript
+          summarizeTranscript(newTranscript);
+      
+          // Diarization
+          const words = result.channel.alternatives[0].words;
+          if (words?.length > 0 && words.some((word) => word.speaker !== undefined)) {
+            const newDiarizedText = formatDiarizedTranscript(words);
+            setDiarizedTranscript((prev) => prev + newDiarizedText + "\n");
+          } else {
+            console.warn("No speaker data found in words.");
+          }
         }
       };
+      
 
       // Handle WebSocket errors
       socket.current.onerror = (error) => {
@@ -104,7 +125,7 @@ const MicrophoneComponent = () => {
     let transcript = "";
     let currentSpeaker = null;
     let currentSentence = [];
-
+  
     for (const word of words) {
       if (currentSpeaker === null || word.speaker !== currentSpeaker) {
         if (currentSentence.length > 0) {
@@ -115,13 +136,20 @@ const MicrophoneComponent = () => {
       }
       currentSentence.push(word.word);
     }
-
+  
     if (currentSentence.length > 0) {
       transcript += `Speaker ${currentSpeaker}: ${currentSentence.join(" ")}`;
     }
-
+  
+    // Simplify for single-speaker scenario
+    const uniqueSpeakers = [...new Set(words.map((w) => w.speaker))];
+    if (uniqueSpeakers.length === 1) {
+      transcript = transcript.replace(/Speaker \d+: /g, "");
+    }
+  
     return transcript;
   };
+  
 
   const summarizeTranscript = (transcript) => {
     chrome.runtime.sendMessage(
@@ -174,7 +202,7 @@ const MicrophoneComponent = () => {
       </div>
       <div>
         <h3>Diarized Transcript:</h3>
-        <pre>{diarizedTranscript}</pre>
+        <pre>{diarizedTranscript || "No diarized data available."}</pre>
       </div>
       <div>
         <h3>Summary:</h3>
