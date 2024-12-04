@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { LiveAudioVisualizer } from "react-audio-visualize";
 
 const MicrophoneComponent = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -11,7 +12,7 @@ const MicrophoneComponent = () => {
   const socket = useRef(null);
   const audioChunks = useRef([]);
 
-  const deepgramApiKey = "30042a1f8625658f0e20fa46e4953fc702ddf351"; // Replace with your actual API key
+  const deepgramApiKey = "7acac8ee95f40703f3c143a41916a58c41f3216b"; // Replace with your actual API key
 
   const initializeSummarizer = async () => {
     try {
@@ -61,7 +62,7 @@ const MicrophoneComponent = () => {
 
       mediaRecorder.current = new MediaRecorder(mediaStream);
       audioChunks.current = []; // Reset audio chunks
-      
+
       socket.current = new WebSocket("wss://api.deepgram.com/v1/listen", [
         "token",
         deepgramApiKey,
@@ -240,26 +241,89 @@ const MicrophoneComponent = () => {
   }, []);
 
   return (
-    <div>
-      <h2>Live Speech-to-Text Transcription with Deepgram</h2>
-      {!isRecording ? (
-        <button onClick={startMicrophone}>Start Recording</button>
-      ) : (
-        <button onClick={stopMicrophone}>Stop Recording</button>
-      )}
-      {isRecording && <p>Recording and transcribing...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <div>
-        <h3>Live Transcript:</h3>
-        <pre>{liveTranscript}</pre>
+    <div
+      className="app-container"
+      style={{ background: "#4B4ACF", padding: "20px", minHeight: "100vh" }}
+    >
+      <div
+        className="visualizer-container"
+        style={{
+          width: "30%",
+          height: "75px",
+          background: "#4B4ACF",
+          margin: "20px auto",
+          position: "relative",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        {isRecording && mediaRecorder.current && (
+          <LiveAudioVisualizer
+            mediaRecorder={mediaRecorder.current}
+            width={500}
+            height={75}
+            barWidth={2}
+            gap={1}
+            barColor={"#fff"}
+          />
+        )}
       </div>
-      <div>
-        <h3>Diarized Transcript:</h3>
-        <pre>{diarizedTranscript || "No diarized data available."}</pre>
+
+      <button
+        onClick={isRecording ? stopMicrophone : startMicrophone}
+        style={{
+          background: "#FF6B4A",
+          color: "white",
+          border: "none",
+          borderRadius: "20px",
+          padding: "8px 16px",
+          cursor: "pointer",
+        }}
+      >
+        {isRecording ? "Stop Recording" : "Start Recording"}
+      </button>
+
+      <div
+        className="transcript-box"
+        style={{
+          background: "#FFFFFF1A",
+          borderRadius: "8px",
+          padding: "20px",
+          margin: "20px 0",
+          color: "white",
+        }}
+      >
+        <h3>Transcript</h3>
+        <p>{liveTranscript || "Start recording to have transcript..."}</p>
       </div>
-      <div>
-        <h3>Summary:</h3>
-        <pre>{summary}</pre>
+
+      <div
+        className="summary-box"
+        style={{
+          background: "#FFFFFF1A",
+          borderRadius: "8px",
+          padding: "20px",
+          margin: "20px 0",
+          color: "white",
+        }}
+      >
+        <h3>Summary</h3>
+        <p>{summary}</p>
+      </div>
+
+      <div
+        className="action-buttons"
+        style={{
+          display: "flex",
+          gap: "10px",
+          justifyContent: "center",
+        }}
+      >
+        <button>Save to Docs</button>
+        <button>Schedule Calendar</button>
+        <button>Flashcards</button>
+        <button>File Logs</button>
       </div>
     </div>
   );

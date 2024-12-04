@@ -31,7 +31,6 @@ body, html {
   /* Buttons */
   .star-btn, .settings-btn {
     background: none;
-    border: 2px solid #6f71fd; /* Border to match design */
     border-radius: 50%;
     color: #6f71fd; /* Blue color */
     font-size: 1rem;
