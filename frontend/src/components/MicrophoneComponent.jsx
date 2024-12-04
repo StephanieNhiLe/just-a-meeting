@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { LiveAudioVisualizer } from "react-audio-visualize";
 
 const MicrophoneComponent = () => {
@@ -243,7 +243,7 @@ const MicrophoneComponent = () => {
   return (
     <div
       className="app-container"
-      style={{ background: "#4B4ACF", padding: "20px", minHeight: "100vh" }}
+      style={{ background: "#4B4ACF", padding: "20px" }}
     >
       <div
         className="visualizer-container"
